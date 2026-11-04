@@ -1,5 +1,13 @@
 import copy
 
+
+
+class tile():
+    def __init__(self):
+        self.currentNum = "."
+        self.legalNums = {"1","2","3","4","5","6","7","8","9"}
+
+
 class board():
     def __init__(self):
         self.tiles = []
@@ -7,7 +15,6 @@ class board():
             self.tiles.append([])
             for x in range(0,9):
                 self.tiles[y].append(tile())
-        self.previousBoards = []
 
     ##How to add a number to a tile on the board
     def numberAdded(self, tiley: int, tilex: int, newNum: str):
@@ -36,7 +43,7 @@ class board():
         for tempy in range(0,3):
             for tempx in range(0,3):
                 if newNum in self.tiles[subTopLefty+tempy][subTopLeftx+tempx].legalNums:
-                    self.tiles[tempy][tempx].legalNums.remove(newNum)
+                    self.tiles[subTopLefty+tempy][subTopLeftx+tempx].legalNums.remove(newNum)
 
 
     ##Finds all legal moves for the given tile
@@ -152,81 +159,62 @@ class board():
         ##If every, row, column, and subSquare are legal and all tiles are occupied then the board is solved.
         return True
 
-
-
-    def solve(self):
-
-        ##FUNCTION DOESNT WORK. triedTiles need to check numbers tried as well as which tiles have been tried
-        def makeNewMove() -> bool:
-        ##Find tile(s) with least legalMoves
-            triedTiles = {}
-            while True:
-            ##Save current boardPositionTemp
-                
-                tilex = 10
-                tiley = 10
-                leastLegalMoves = 10
-                canContinue = False
-                for y in range(0,9):
-                    for x in range(0,9):
-                        if leastLegalMoves > len(self.tiles[y][x].legalNums) and self.tiles[y][x].currentNum == ".":
-                            if (tiley,tilex) in triedTiles:
-                                if (leastLegalMoves > len(triedTiles[tiley,tilex])):
-                                    leastLegalMoves = len(self.tiles[y][x].legalNums)
-                                    tilex = x
-                                    tiley = y
-                                    canContinue = True
-                            else:
-                                leastLegalMoves = len(self.tiles[y][x].legalNums)
-                                tilex = x
-                                tiley = y
-                                canContinue = True
-
-                ##If no legal moves are possible
-                if leastLegalMoves == 10:
-                    ##backtrack/ checkwin
-                    return False
-                elif (canContinue):
-                    
-                    for num in self.tiles[tiley][tilex].legalNums:
-                        ##make move, check if its been played before, if yes then undo, if no make new move
-                        self.numberAdded(tiley,tilex,num)
-                        if ((tiley,tilex) not in triedTiles):
-                            triedTiles[tiley,tilex] = set()
-                        triedTiles[tiley,tilex].add(num)
-                        if self.tiles not in self.previousBoards:     ##New board iteration
-                            self.previousBoards.append(copy.deepcopy(self.tiles))
-                            return True
-                        else:
-                            self.numberRemoved(tiley,tilex)
-
-        
-        route = [copy.deepcopy(self.tiles)]   ##Create a stack starting with current tiles
-        solving = True
-        while solving:
-            if (not makeNewMove()):
-                if (self.checkWin()):
-                    ##Won
-                    pass 
-                else:
-                    ##pop board position
-                    self.tiles = copy.deepcopy(route[-2])
-                    route.pop(-1)
-            else:
-                route.append(copy.deepcopy(self.tiles))
-
             
+    def solve(self) -> list[bool,list[tuple],list]:     ##If solved or not, route provided, finished board
 
-        ##Every move push the new tiles to the stack
-        ##Every deadend pop from stack
-        ##Stack creates a route to the end for backtracking
-    
-    
+        ##Looks at the board and returns tile with least possible legal moves
+        ##If no tiles are free returns empty tuple
+        def findNextTile() -> tuple:
+            leastLegalMoves = 10
+            nextTile = set()
+            for y in range(0,9):
+                for x in range(0,9):
+                    if leastLegalMoves > len(self.tiles[y][x].legalNums) and self.tiles[y][x].currentNum == ".":
+                        leastLegalMoves = len(self.tiles[y][x].legalNums)
+                        nextTile = (y,x)
+            
+            return nextTile                    
+                            
+
+        route = []   ## [((y,x),num)]
+        solved = False
+        ##Try tile with fewest legalmoves, try all legal numbers, if fail then try with the the with next fewest legal moves
+        nextTile = findNextTile()
+        if len(nextTile) == 0:
+            if self.checkWin():
+                solved = True
+            return [solved,route,self]
 
 
+        ##Add new number to the tempboard
+        for num in self.tiles[nextTile[0]][nextTile[1]].legalNums:
+            tempBoard = copy.deepcopy(self)
+            tempBoard.numberAdded(nextTile[0],nextTile[1],num)
+            route.append((nextTile,num))
+        
+            ##Finds if tempBoard is full
+            full = True
+            for row in tempBoard.tiles:
+                for tile in row:
+                    if tile.currentNum == ".":
+                        full = False
+            if full:
+                ##If solved, return to start of recursion
+                if tempBoard.checkWin():
+                    solved = True
 
+            else:
+                results = tempBoard.solve()
+                ##if it found a solution
+                if results[0]:
+                    results[1].insert(0,(nextTile,num))
+                    return results
 
-class tile():
-    def __init__(self):
-        self.currentNum = "."
-        self.legalNums = {"1","2","3","4","5","6","7","8","9"}
+            if not solved:
+                route.pop(-1)
+            else:
+                break
+
+        ##if solved is false then it hit a deadend, if solved is true then it found the solution
+        return [solved, route, tempBoard.tiles]
+            
