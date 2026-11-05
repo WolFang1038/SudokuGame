@@ -3,18 +3,47 @@ import copy
 
 
 class tile():
-    def __init__(self):
-        self.currentNum = "."
+    def __init__(self, num: str):
+        self.currentNum = num
         self.legalNums = {"1","2","3","4","5","6","7","8","9"}
 
 
 class board():
-    def __init__(self):
+    def __init__(self,providedTiles: list[str]):
+        ##Creating blank board
         self.tiles = []
+        if len(providedTiles) == 0:
+            for y in range(0,9):
+                self.tiles.append([])
+                for x in range(0,9):
+                    self.tiles[y].append(tile("."))
+        
+        ##Loading premade board
+        elif len(providedTiles) == 81:
+            y = 0
+            x = 0
+            for num in providedTiles:
+                if x == 0:
+                    self.tiles.append([])
+                self.tiles[y].append(tile(num))
+                x += 1
+                if x == 9:
+                    y += 1
+                    x = 0
+            for y in range(0,9):
+                for x in range(0,9):
+                    self.tiles[y][x].legalNums = self.findLegalMoves(y,x)
+
+        else:
+            print("Incorrect board layout")
+
+    def printBoard(self):
         for y in range(0,9):
-            self.tiles.append([])
+            row = []
             for x in range(0,9):
-                self.tiles[y].append(tile())
+                row.append(self.tiles[y][x].currentNum)
+            print(row)
+
 
     ##How to add a number to a tile on the board
     def numberAdded(self, tiley: int, tilex: int, newNum: str):
@@ -184,7 +213,8 @@ class board():
             if self.checkWin():
                 solved = True
             return [solved,route,self]
-
+        elif len(self.tiles[nextTile[0]][nextTile[1]].legalNums) == 0:
+            return [False, route, self]
 
         ##Add new number to the tempboard
         for num in self.tiles[nextTile[0]][nextTile[1]].legalNums:
@@ -216,5 +246,27 @@ class board():
                 break
 
         ##if solved is false then it hit a deadend, if solved is true then it found the solution
-        return [solved, route, tempBoard.tiles]
-            
+        return [solved, route, tempBoard]
+
+
+
+##----------------------
+## Main Program
+## Test if board functions as intended.
+gameBoard = board([
+    ".",".",".","6","7",".",".",".",".",
+    ".",".","2",".",".","5",".",".","8",
+    ".",".",".",".","4",".",".","6",".",
+    "8","5","9",".",".",".","4","2","3",
+    ".",".",".",".",".",".",".",".","1",
+    "7",".",".","9",".",".",".",".",".",
+    ".",".",".",".",".",".",".",".",".",
+    ".","8",".",".",".",".","6",".","5",
+    "3","4",".","2","8",".",".","7","."
+])
+gameBoard.printBoard()
+results = gameBoard.solve()
+print(results[0])
+print(results[1])
+results[2].printBoard()
+
