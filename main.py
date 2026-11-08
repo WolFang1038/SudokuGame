@@ -189,8 +189,7 @@ class board():
         return True
 
             
-    def solve(self) -> list[bool,list[tuple],list]:     ##If solved or not, route provided, finished board
-
+    def solve(self, solvedBoards: list) -> list:     ##Finds all legal boards
         ##Looks at the board and returns tile with least possible legal moves
         ##If no tiles are free returns empty tuple
         def findNextTile() -> tuple:
@@ -205,22 +204,19 @@ class board():
             return nextTile                    
                             
 
-        route = []   ## [((y,x),num)]
-        solved = False
         ##Try tile with fewest legalmoves, try all legal numbers, if fail then try with the the with next fewest legal moves
         nextTile = findNextTile()
         if len(nextTile) == 0:
             if self.checkWin():
-                solved = True
-            return [solved,route,self]
+                solvedBoards.append(copy.deepcopy(self))
+            return solvedBoards
         elif len(self.tiles[nextTile[0]][nextTile[1]].legalNums) == 0:
-            return [False, route, self]
+            return solvedBoards
 
         ##Add new number to the tempboard
         for num in self.tiles[nextTile[0]][nextTile[1]].legalNums:
             tempBoard = copy.deepcopy(self)
             tempBoard.numberAdded(nextTile[0],nextTile[1],num)
-            route.append((nextTile,num))
         
             ##Finds if tempBoard is full
             full = True
@@ -231,22 +227,13 @@ class board():
             if full:
                 ##If solved, return to start of recursion
                 if tempBoard.checkWin():
-                    solved = True
+                    solvedBoards.append(copy.deepcopy(tempBoard))
 
             else:
-                results = tempBoard.solve()
-                ##if it found a solution
-                if results[0]:
-                    results[1].insert(0,(nextTile,num))
-                    return results
+                tempBoard.solve(solvedBoards)
 
-            if not solved:
-                route.pop(-1)
-            else:
-                break
-
-        ##if solved is false then it hit a deadend, if solved is true then it found the solution
-        return [solved, route, tempBoard]
+        ##Final return of all found solved board positions
+        return solvedBoards
 
 
 
@@ -254,19 +241,21 @@ class board():
 ## Main Program
 ## Test if board functions as intended.
 gameBoard = board([
-    ".",".",".","6","7",".",".",".",".",
-    ".",".","2",".",".","5",".",".","8",
-    ".",".",".",".","4",".",".","6",".",
-    "8","5","9",".",".",".","4","2","3",
-    ".",".",".",".",".",".",".",".","1",
-    "7",".",".","9",".",".",".",".",".",
     ".",".",".",".",".",".",".",".",".",
-    ".","8",".",".",".",".","6",".","5",
-    "3","4",".","2","8",".",".","7","."
+    ".",".",".",".",".",".",".",".",".",
+    "1","9","8","3","4","2","5","6","7",
+    "8","5","9","7","6","1","4","2","3",
+    "4","2","6","8","5","3","7","9","1",
+    "7","1","3","9","2","4","8","5","6",
+    "9","6","1","5","3","7","2","8","4",
+    "2","8","7","4","1","9","6","3","5",
+    "3","4","5","2","8","6","1","7","9"
 ])
 gameBoard.printBoard()
-results = gameBoard.solve()
-print(results[0])
-print(results[1])
-results[2].printBoard()
+solvedBoards = gameBoard.solve([])
+for finishedBoard in solvedBoards:
+    print()
+    finishedBoard.printBoard()
+    
+print("Found: ",len(solvedBoards), " finished boards")
 
